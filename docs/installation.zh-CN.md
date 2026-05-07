@@ -68,6 +68,14 @@ npm run demo
 npm run check
 ```
 
+模拟真实新人安装：
+
+```bash
+npm run smoke:newcomer
+```
+
+这个命令会创建一个临时空目录，把当前项目打成 npm 包，像外部用户一样安装并运行 `npx lobster-pm init --yes`，最后检查生成的工作区是否包含必要配置、角色提示词、任务真相源、项目驾驶舱、运行快照和私聊总线文件。
+
 ## 4. 初始化向导详解
 
 向导会依次询问：
@@ -225,7 +233,67 @@ prompts/supervisor.md
 
 如果连续几轮只有“系统稳定”“等待输入”，说明框架在空转，需要监督官介入纠偏。
 
-## 9. 常见配置方案
+## 9. 如何模拟真实新人环境测试
+
+推荐分四层测试：
+
+### 9.1 本地包安装黑盒测试
+
+```bash
+npm run smoke:newcomer
+```
+
+它验证：
+
+- 新人不在源码目录里也能安装。
+- `lobster-pm` 命令能被 `npx` 找到。
+- `init --yes` 能生成完整工作区。
+- 核心文件都存在。
+- seed task 具备可执行字段。
+- prompt 中包含心跳、收件箱、验收等关键协议。
+
+### 9.2 GitHub 远程安装测试
+
+在任意空目录运行：
+
+```bash
+npx github:xianzhen2008-dotcom/lobster-perpetual-machine init --yes --dir ./lobster-test
+```
+
+如果这一步失败，通常是 GitHub 包入口、`package.json bin` 或 Node 版本存在问题。
+
+### 9.3 新人阅读路径测试
+
+让一个没看过项目的人只读这三个文件：
+
+```text
+README.md
+docs/installation.zh-CN.md
+docs/starter-guide.md
+```
+
+看她能否回答：
+
+- 这个项目解决什么问题？
+- 怎么安装？
+- 生成后先改哪个文件？
+- 如何判断系统真的跑起来？
+- 哪些事情不能提交到公开仓库？
+
+### 9.4 首轮运行模拟
+
+生成工作区后，手动模拟第一轮：
+
+1. planner 读 `tasks/PROJECT-COCKPIT.md`，写今日纲领。
+2. main 读 `tasks/todo.json` 和 `agent-chat/mailboxes/main.md`，决定下一步。
+3. pm 补齐任务规格。
+4. dev 根据规格给出实现计划或 blocker。
+5. qa 根据 acceptance criteria 给出验收要求。
+6. supervisor 检查是否有真实变化和证据。
+
+如果这六步无法跑通，说明不是模型问题，而是任务字段、角色职责或心跳协议还不够清楚。
+
+## 10. 常见配置方案
 
 ### 轻量个人版
 
@@ -247,7 +315,7 @@ prompts/supervisor.md
 - 增加 researcher 或 analyst specialist。
 - 所有外部资料先进入进化收件箱，不直接进入任务池。
 
-## 10. 隐私和安全
+## 11. 隐私和安全
 
 不要把以下内容提交到公开仓库：
 

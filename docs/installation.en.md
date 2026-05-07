@@ -68,6 +68,14 @@ Run validation:
 npm run check
 ```
 
+Simulate a real newcomer install:
+
+```bash
+npm run smoke:newcomer
+```
+
+This command creates a temporary empty directory, packs the current project as an npm package, installs it like an external user, runs `npx lobster-pm init --yes`, and checks that the generated workspace includes required config, role prompts, task truth source, project cockpit, runtime snapshot, and agent chat bus files.
+
 ## 4. Setup Wizard
 
 The wizard asks for:
@@ -225,7 +233,67 @@ Do not only check whether agents reply. Check whether these files change:
 
 If multiple loops only say “stable” or “waiting for input”, the system is idling and the supervisor should intervene.
 
-## 9. Common Setups
+## 9. How to Simulate a Real Newcomer Environment
+
+Use four layers:
+
+### 9.1 Local Package Black-Box Test
+
+```bash
+npm run smoke:newcomer
+```
+
+It verifies:
+
+- The package works outside the source directory.
+- `lobster-pm` is available through `npx`.
+- `init --yes` generates a complete workspace.
+- Required files exist.
+- The seed task has executable fields.
+- Prompts include heartbeat, inbox, and QA protocol.
+
+### 9.2 GitHub Remote Install Test
+
+Run this in any empty directory:
+
+```bash
+npx github:xianzhen2008-dotcom/lobster-perpetual-machine init --yes --dir ./lobster-test
+```
+
+If it fails, check GitHub packaging, `package.json bin`, or Node version.
+
+### 9.3 Newcomer Reading Path Test
+
+Ask someone who has never seen the project to read only:
+
+```text
+README.en.md
+docs/installation.en.md
+docs/starter-guide.md
+```
+
+They should be able to answer:
+
+- What problem does this project solve?
+- How do I install it?
+- Which generated file should I edit first?
+- How do I know the system is actually running?
+- What must not be committed publicly?
+
+### 9.4 First-Loop Simulation
+
+After generating a workspace, manually simulate the first loop:
+
+1. planner reads `tasks/PROJECT-COCKPIT.md` and writes a daily charter.
+2. main reads `tasks/todo.json` and `agent-chat/mailboxes/main.md`, then decides the next move.
+3. pm clarifies the task.
+4. dev creates an implementation plan or blocker.
+5. qa defines acceptance requirements.
+6. supervisor checks whether there was real change and evidence.
+
+If these six steps cannot run, the issue is not the model. The task fields, role responsibilities, or heartbeat protocol are not clear enough.
+
+## 10. Common Setups
 
 ### Lightweight Personal Setup
 
@@ -247,7 +315,7 @@ If multiple loops only say “stable” or “waiting for input”, the system i
 - Add researcher or analyst specialist.
 - External materials go into Evolution Inbox first, not directly into tasks.
 
-## 10. Privacy and Safety
+## 11. Privacy and Safety
 
 Do not commit:
 

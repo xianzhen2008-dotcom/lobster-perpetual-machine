@@ -10,6 +10,7 @@
   "scripts": {
     "init": "node ./bin/lobster-pm.mjs init",
     "check": "node ./scripts/validate.mjs",
+    "smoke:newcomer": "node ./scripts/smoke-newcomer.mjs",
     "demo": "node ./bin/lobster-pm.mjs init --yes --dir ./demo-workspace"
   },
   "keywords": [
