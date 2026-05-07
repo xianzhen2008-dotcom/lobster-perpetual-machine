@@ -34,8 +34,10 @@ Most agent systems fail in the same way:
 
 ## Quick Start
 
+Run directly from GitHub:
+
 ```bash
-npx lobster-perpetual-machine init
+npx github:xianzhen2008-dotcom/lobster-perpetual-machine init
 ```
 
 Or clone and run locally:
@@ -46,6 +48,8 @@ cd lobster-perpetual-machine
 npm install
 npm run init
 ```
+
+The npm package name is reserved in the project metadata but not published yet.
 
 The starter asks:
 
