@@ -3,7 +3,7 @@
 ## 1. Install / 安装
 
 ```bash
-npx lobster-perpetual-machine init
+npx github:xianzhen2008-dotcom/lobster-perpetual-machine init
 ```
 
 Or run from source:

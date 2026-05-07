@@ -5,8 +5,11 @@ import path from 'node:path';
 const ROOT = path.resolve(new URL('..', import.meta.url).pathname);
 const required = [
   'README.md',
+  'README.en.md',
   'package.json',
   'bin/lobster-pm.mjs',
+  'docs/installation.zh-CN.md',
+  'docs/installation.en.md',
   'docs/architecture.md',
   'docs/roles-and-heartbeats.md',
   'docs/task-system.md',

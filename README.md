@@ -1,46 +1,46 @@
-# 龙虾永动机 · Lobster Perpetual Machine
+# 龙虾永动机
 
-> A self-driving operating system for AI agent teams.  
-> 一套让 AI Agent 团队有组织、有节奏、有验收地持续产出的开源运行框架。
+> 让 AI Agent 团队有组织、有节奏、有验收地持续产出的开源运行框架。
 
-龙虾永动机不是“多开几个 agent 聊天”。它把一个 AI 团队拆成可治理的组织系统：主控、计划、产品、开发、验收、监督、异步私聊、任务真相源、运行快照和自我进化队列。目标是让 agent 像真实团队一样工作：先定目标，再分工执行，最后用证据验收和复盘。
+[English README](README.en.md) | [安装与配置教程](docs/installation.zh-CN.md)
 
-Lobster Perpetual Machine is not just a bunch of agents talking to each other. It is an operating model for autonomous AI teams: controller, planner, product, engineering, QA, supervisor, async communication bus, task truth source, runtime snapshots, and an evolution inbox. The goal is to make agents work like a real team: plan, assign, execute, verify, and improve.
+龙虾永动机不是“多开几个 agent 聊天”。它把一个 AI 团队拆成可治理的组织系统：主控、每日规划、产品、开发、验收、监督、异步私聊、任务真相源、运行快照和自我进化队列。目标是让 agent 像真实团队一样工作：先定目标，再分工执行，最后用证据验收和复盘。
 
-## Why
+## 它解决什么问题
 
-Most agent systems fail in the same way:
+很多 Agent 系统会进入一种很熟悉的坏状态：
 
-- They keep “running” but do not produce value.
-- They report status instead of making decisions.
-- One agent asks another agent for help, but the message is lost in a different session.
-- Tasks are too vague to implement or verify.
-- The system has no product manager, no QA gate, and no supervisor.
+- 看起来一直在运行，但没有真实产出。
+- 汇报很多状态，却没有做决策。
+- A 找 B 协作，但消息进入了错误会话，B 下轮根本没读到。
+- 任务只有一句话，无法开发、无法验收。
+- 没有产品经理、没有 QA 门禁、没有监督官。
+- 系统越来越复杂，但没人判断它是否真的变强。
 
-龙虾永动机解决的是这些组织问题，而不是只解决 prompt 问题。
+龙虾永动机解决的是这些“组织机制问题”，不是只给你一段更长的 prompt。
 
-## Core Concepts
+## 核心概念
 
-| Concept | English | 中文说明 |
-|---|---|---|
-| Main Controller | The team captain that owns direction, decisions, dispatch, and escalation. | 主控：抓主线、拍板、派活、处理卡点。 |
-| Daily Charter | A daily operating plan with goals, gates, owners, and deliverables. | 每日纲领：当天要达成什么、谁负责、怎么验收。 |
-| Project Cockpit | A project-level dashboard for phase, user problem, defects, owner, and evidence. | 项目驾驶舱：让团队围绕一个产品对象推进，而不是散点任务。 |
-| Task Truth Source | A structured task pool. Every task must have owner, next action, acceptance criteria, and evidence. | 任务真相源：任务必须可执行、可验收、可追踪。 |
-| Agent Chat Bus | Persistent DM/group threads. Every heartbeat must read inbox and write back status. | Agent 私聊总线：解决“发了但对方没看到”的不同频问题。 |
-| Heartbeat | Recurring role-specific wakeup protocol. A heartbeat must produce an action, decision, correction, or evidence. | 心跳：不是报平安，而是推进、纠偏、验收或沉淀。 |
-| Supervisor | A governance role that audits health, output value, communication, and drift. | 监督官：检查系统是否健康、是否真实产出、是否偏航。 |
-| Evolution Inbox | A safe queue for system improvement candidates before they become tasks. | 进化收件箱：把外部方案和本地经验变成可验证升级。 |
+| 概念 | 作用 |
+|---|---|
+| 主控 | 抓主线、拍板、派活、处理卡点，像团队总导演。 |
+| 每日纲领 | 每天先定目标、交付物、责任人、风险和验收标准。 |
+| 项目驾驶舱 | 让团队围绕一个项目对象推进，而不是散点任务。 |
+| 任务真相源 | 所有任务必须有 owner、next_action、验收标准和证据。 |
+| Agent 私聊总线 | 每个核心 agent 每轮先读收件箱，处理后写回状态。 |
+| 心跳协议 | 定时唤醒不是报平安，而是推进、纠偏、验收或沉淀。 |
+| 监督官 | 审计系统健康、真实产出、沟通链路和偏航风险。 |
+| 进化收件箱 | 外部成熟方案和本地经验先筛选，再升级为任务。 |
 
-## Quick Start
+## 快速开始
 
-Run directly from GitHub:
+直接从 GitHub 运行：
 
 ```bash
 npx github:xianzhen2008-dotcom/lobster-perpetual-machine init
 ```
 
-Or clone and run locally:
+或克隆到本地运行：
 
 ```bash
 git clone https://github.com/xianzhen2008-dotcom/lobster-perpetual-machine.git
@@ -49,34 +49,34 @@ npm install
 npm run init
 ```
 
-The npm package name is reserved in the project metadata but not published yet.
+如果你想无交互生成默认工作区：
 
-The starter asks:
+```bash
+npm run demo
+```
 
-- Which roles you want to enable.
-- What each role is responsible for.
-- Heartbeat intervals for controller, planner, PM, engineer, QA, and supervisor.
-- Whether to enable the task system, agent chat bus, evolution inbox, project cockpit, and cron hints.
-- Where to generate your workspace.
+更完整的安装、配置、接入说明请看：[安装与配置教程](docs/installation.zh-CN.md)。
+
+## 初始化向导会问什么
 
 启动程序会引导你配置：
 
 - 要启用哪些 agent 角色。
-- 每个角色负责什么。
+- 每个角色叫什么、负责什么。
 - 主控、规划、产品、开发、验收、监督的心跳频率。
-- 是否开启任务系统、Agent 私聊总线、进化收件箱、项目驾驶舱、cron 提示。
+- 是否开启任务系统、Agent 私聊总线、进化收件箱、项目驾驶舱、运行快照、cron 提示。
 - 要把工作区生成到哪里。
 
-## What Gets Generated
+## 生成的工作区结构
 
 ```text
 workspace/
   config/lpm.config.json
   prompts/
-    main-controller.md
+    main.md
     planner.md
-    product-manager.md
-    engineer.md
+    pm.md
+    dev.md
     qa.md
     supervisor.md
   memory/runtime/
@@ -94,60 +94,57 @@ workspace/
     OPERATING-RULES.md
 ```
 
-## Operating Loop
+## 运行逻辑
 
 ```mermaid
 flowchart TD
-  A["Daily Charter<br/>每日纲领"] --> B["Main Controller Heartbeat<br/>主控心跳"]
-  B --> C["Project Cockpit<br/>项目驾驶舱"]
-  B --> D["Task Truth Source<br/>任务真相源"]
-  B --> E["Agent Chat Bus<br/>私聊/群聊总线"]
-  D --> F["PM: clarify specs<br/>产品补规格"]
-  D --> G["Engineer: implement<br/>开发实现"]
-  D --> H["QA: verify evidence<br/>验收证据"]
+  A["每日纲领"] --> B["主控心跳"]
+  B --> C["项目驾驶舱"]
+  B --> D["任务真相源"]
+  B --> E["Agent 私聊总线"]
+  D --> F["PM 补规格"]
+  D --> G["Dev 实现"]
+  D --> H["QA 验收"]
   F --> E
   G --> E
   H --> E
   E --> B
-  B --> I["Runtime Snapshot<br/>运行快照"]
-  I --> J["Supervisor Audit<br/>监督审计"]
+  B --> I["运行快照"]
+  I --> J["监督审计"]
   J --> B
-  J --> K["Evolution Inbox<br/>进化收件箱"]
+  J --> K["进化收件箱"]
   K --> F
 ```
 
-## Design Principles
+## 设计原则
 
-- A heartbeat is not alive unless it changes something verifiable.
-- No task enters execution without owner, next action, acceptance criteria, and evidence path.
-- The controller decides; it does not wait for the human unless the issue is physical, legal, financial, credential-related, or externally destructive.
-- Agent communication is thread-based. Push messages are acceleration, not the truth source.
-- Supervisor audits value, not just uptime.
-- Evolution candidates must pass value screening before becoming tasks.
+- 心跳不是活着，心跳必须改变一些可验证的东西。
+- 没有 owner、next_action、acceptance criteria、evidence 的任务不能进入执行。
+- 主控默认自己决策，只有物理、法律、财务、密钥、外部破坏性动作才上收人类。
+- Agent 沟通必须线程化，push 只是提醒，不是真相源。
+- 监督官审计价值，不只审计 uptime。
+- 进化候选必须先经过价值筛选，不能直接污染任务池。
 
-## Privacy
+## 文档
 
-This repository is a sanitized public template. Do not commit:
+- [安装与配置教程](docs/installation.zh-CN.md)
+- [架构说明](docs/architecture.md)
+- [角色与心跳](docs/roles-and-heartbeats.md)
+- [任务系统](docs/task-system.md)
+- [Agent 私聊总线](docs/agent-chat-bus.md)
+- [进化系统](docs/evolution-system.md)
+- [隐私与安全](docs/privacy-and-safety.md)
 
-- API keys, tokens, cookies, auth states, database files, private chat logs.
-- Real business data, customer data, email content, enterprise chat content.
-- Private persona files or memory files containing personal information.
+## 隐私边界
 
-Use `.env` or your local secret manager for credentials.
+这个仓库是脱敏后的公开模板。不要提交：
 
-## Documentation
+- API key、token、cookie、认证状态、数据库。
+- 真实业务数据、客户数据、邮件、企业聊天内容。
+- 私人人格设定、个人记忆、私密任务记录。
 
-- [Architecture](docs/architecture.md)
-- [Roles and Heartbeats](docs/roles-and-heartbeats.md)
-- [Task System](docs/task-system.md)
-- [Agent Chat Bus](docs/agent-chat-bus.md)
-- [Evolution System](docs/evolution-system.md)
-- [Starter Guide](docs/starter-guide.md)
+凭证请放在 `.env` 或你自己的密钥管理系统里。
 
-## 中文一句话
+## 一句话
 
 龙虾永动机是一套“AI 团队操作系统”：让 agent 不再空转，不再各聊各的，而是围绕明确目标、项目驾驶舱、任务真相源和验收证据持续协作。
-
-## English One-Liner
-
-Lobster Perpetual Machine is an AI team operating system that turns scattered agents into a goal-driven, evidence-based, self-improving delivery loop.
