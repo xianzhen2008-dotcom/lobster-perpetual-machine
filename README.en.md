@@ -8,6 +8,8 @@ Lobster Perpetual Machine is not just a bunch of agents chatting with each other
 
 The goal is to make agents work like a real team: plan first, assign clearly, execute with evidence, verify from a user perspective, and improve the system after each loop.
 
+It is especially useful for people who already have a large coding plan / agent plan allowance but do not know how to turn that quota into steady output. Lobster Perpetual Machine turns available model capacity into a managed AI team with cadence, QA, and learning loops.
+
 ## What It Solves
 
 Many agent systems fail in predictable ways:
@@ -67,12 +69,15 @@ The starter wizard helps you choose:
 - What each role is called and responsible for.
 - Heartbeat intervals for controller, planner, PM, engineer, QA, and supervisor.
 - Whether to enable task system, agent chat bus, evolution inbox, project cockpit, runtime snapshot, and OpenClaw native cron scheduling.
+- Whether to scan real local OpenClaw agents; if none exist, generate default agent definitions.
 - Where to generate the workspace.
 
 ## Generated Workspace
 
 ```text
 workspace/
+  agents/
+    openclaw-agents.json
   config/lpm.config.json
   prompts/
     main.md
@@ -107,6 +112,12 @@ Heartbeat scheduling uses OpenClaw native cron first. The starter asks whether t
 
 ```bash
 npx lobster-pm install-scheduler --dir ./workspace --mode openclaw-cron --confirm
+```
+
+Agents are not only hard-coded. The starter scans local OpenClaw config first and reuses real agents when possible. Missing core roles are generated into `agents/openclaw-agents.json`, and can be installed later:
+
+```bash
+npx lobster-pm install-agents --dir ./workspace --confirm
 ```
 
 To experience the loop without real OpenClaw, use the local simulator:

@@ -110,6 +110,7 @@ Recommended defaults:
 - `evolutionInbox`: improvement candidate queue.
 - `runtimeSnapshot`: operating snapshot.
 - `scheduler`: OpenClaw native cron scheduling.
+- `agentDiscovery`: scan real local OpenClaw agents and generate defaults for missing roles.
 - `personalityLayer`: role style and personality layer.
 
 Keep defaults if you are trying the project for the first time.
@@ -125,12 +126,13 @@ Default core team:
 - `qa`: acceptance, rejection, and defects.
 - `supervisor`: health, output, communication, and drift audit.
 
-You can disable roles or edit display name, heartbeat interval, and responsibility.
+The wizard scans `~/.openclaw/openclaw.json` and `~/.openclaw/.openclaw/openclaw.json` first. If matching core agents exist, it reuses their real `id/name`; if not, it generates default agent definitions in `agents/openclaw-agents.json`. You can disable roles or edit display name, heartbeat interval, and responsibility.
 
 ## 5. Generated Directory
 
 ```text
 workspace/
+  agents/openclaw-agents.json  # detected agents + generated missing agent definitions
   config/lpm.config.json        # main config
   prompts/                      # role prompts
   tasks/todo.json               # task truth source
@@ -226,6 +228,14 @@ npx lobster-pm install-scheduler --dir ./workspace --mode openclaw-cron --opencl
 ```
 
 The install command merges `scheduler/openclaw-cron-jobs.json` into OpenClaw `cron/jobs.json` and backs up the original file first. `scheduler/heartbeat-plan.cron` is only a fallback reference.
+
+If the scan finds missing core agents, install the generated default agents:
+
+```bash
+npx lobster-pm install-agents --dir ./workspace --confirm
+```
+
+This merges `generatedAgents` from `agents/openclaw-agents.json` into OpenClaw `openclaw.json` and backs up the original file first. Existing real agents are not duplicated.
 
 Each heartbeat must still follow the protocol:
 

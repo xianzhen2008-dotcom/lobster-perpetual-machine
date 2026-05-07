@@ -6,6 +6,8 @@
 
 龙虾永动机不是“多开几个 agent 聊天”。它把一个 AI 团队拆成可治理的组织系统：主控、每日规划、产品、开发、验收、监督、异步私聊、任务真相源、运行快照和自我进化队列。目标是让 agent 像真实团队一样工作：先定目标，再分工执行，最后用证据验收和复盘。
 
+它尤其适合已经有大额度 coding plan / agent plan 套餐，却不知道如何把额度稳定转化为真实产出的人：龙虾永动机会把“可用算力”组织成有节奏、有验收、有复盘的 AI 团队。
+
 ## 它解决什么问题
 
 很多 Agent 系统会进入一种很熟悉的坏状态：
@@ -65,12 +67,15 @@ npm run demo
 - 每个角色叫什么、负责什么。
 - 主控、规划、产品、开发、验收、监督的心跳频率。
 - 是否开启任务系统、Agent 私聊总线、进化收件箱、项目驾驶舱、运行快照、OpenClaw 原生 cron 定时。
+- 是否扫描本地 OpenClaw 真实 agent；如果没有，就自动生成默认 agent 配置。
 - 要把工作区生成到哪里。
 
 ## 生成的工作区结构
 
 ```text
 workspace/
+  agents/
+    openclaw-agents.json
   config/lpm.config.json
   prompts/
     main.md
@@ -105,6 +110,12 @@ workspace/
 
 ```bash
 npx lobster-pm install-scheduler --dir ./workspace --mode openclaw-cron --confirm
+```
+
+Agent 不是纯写死的。启动时会扫描本地 OpenClaw 配置，优先复用真实 agent；缺失的核心岗位会生成默认配置到 `agents/openclaw-agents.json`，后续可执行：
+
+```bash
+npx lobster-pm install-agents --dir ./workspace --confirm
 ```
 
 本地体验不需要真实 OpenClaw，可以先跑模拟：

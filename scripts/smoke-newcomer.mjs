@@ -8,6 +8,7 @@ const ROOT = path.resolve(new URL('..', import.meta.url).pathname);
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'lpm-newcomer-'));
 const INSTALL_DIR = path.join(TMP, 'fresh-project');
 const WORKSPACE_DIR = path.join(INSTALL_DIR, 'workspace');
+const FAKE_HOME = path.join(TMP, 'home');
 
 function run(cmd, args, opts = {}) {
   const label = `${cmd} ${args.join(' ')}`;
@@ -18,6 +19,7 @@ function run(cmd, args, opts = {}) {
     encoding: 'utf8',
     env: {
       ...process.env,
+      ...(opts.env || {}),
       npm_config_loglevel: 'warn',
       npm_config_yes: 'true'
     }
@@ -44,6 +46,7 @@ function assertIncludes(file, needle) {
 function main() {
   console.log(`Newcomer smoke test temp dir: ${TMP}`);
   fs.mkdirSync(INSTALL_DIR, { recursive: true });
+  fs.mkdirSync(FAKE_HOME, { recursive: true });
 
   const packOutput = run('npm', ['pack', '--pack-destination', TMP], { cwd: ROOT });
   const tarballName = packOutput.trim().split('\n').at(-1);
@@ -52,11 +55,12 @@ function main() {
 
   run('npm', ['init', '-y'], { cwd: INSTALL_DIR });
   run('npm', ['install', tarball], { cwd: INSTALL_DIR });
-  run('npx', ['lobster-pm', 'init', '--yes', '--dir', WORKSPACE_DIR], { cwd: INSTALL_DIR, stdio: 'inherit' });
+  run('npx', ['lobster-pm', 'init', '--yes', '--dir', WORKSPACE_DIR], { cwd: INSTALL_DIR, stdio: 'inherit', env: { HOME: FAKE_HOME } });
 
   const required = [
     'README.md',
     'config/lpm.config.json',
+    'agents/openclaw-agents.json',
     'docs/OPERATING-RULES.md',
     'tasks/todo.json',
     'tasks/PROJECT-COCKPIT.md',
@@ -85,6 +89,12 @@ function main() {
   for (const rel of required) assertFile(path.join(WORKSPACE_DIR, rel));
 
   const config = readJson(path.join(WORKSPACE_DIR, 'config/lpm.config.json'));
+  if (!config.agentDiscovery || !config.agentDiscovery.mode) {
+    throw new Error('config should include agentDiscovery metadata');
+  }
+  if (config.agentDiscovery.mode !== 'default-generated') {
+    throw new Error(`newcomer smoke should use default-generated agents, got ${config.agentDiscovery.mode}`);
+  }
   const enabled = config.roles.filter(role => role.enabled).map(role => role.id);
   for (const id of ['main', 'planner', 'pm', 'dev', 'qa', 'supervisor']) {
     if (!enabled.includes(id)) throw new Error(`role not enabled: ${id}`);
@@ -100,6 +110,13 @@ function main() {
   }
 
   assertIncludes(path.join(WORKSPACE_DIR, 'prompts/main.md'), 'Start every heartbeat by reading your inbox');
+  const agentPlan = readJson(path.join(WORKSPACE_DIR, 'agents/openclaw-agents.json'));
+  if (!Array.isArray(agentPlan.generatedAgents)) {
+    throw new Error('agent plan should include generatedAgents');
+  }
+  if (agentPlan.generatedAgents.length < 6) {
+    throw new Error('fresh newcomer should receive default generated agents for all core roles');
+  }
   assertIncludes(path.join(WORKSPACE_DIR, 'prompts/qa.md'), 'If implementation is complete, route it to QA');
   assertIncludes(path.join(WORKSPACE_DIR, 'docs/OPERATING-RULES.md'), 'Everything is stable');
   assertIncludes(path.join(WORKSPACE_DIR, 'tasks/PROJECT-COCKPIT.md'), 'Stage Gates');
@@ -112,6 +129,9 @@ function main() {
   }
 
   run('npx', ['lobster-pm', 'doctor', '--dir', WORKSPACE_DIR], { cwd: INSTALL_DIR, stdio: 'inherit' });
+  const TEMP_OPENCLAW = path.join(TMP, 'fake-openclaw');
+  run('npx', ['lobster-pm', 'install-agents', '--dir', WORKSPACE_DIR, '--openclaw-dir', TEMP_OPENCLAW, '--confirm'], { cwd: INSTALL_DIR, stdio: 'inherit' });
+  assertFile(path.join(TEMP_OPENCLAW, 'openclaw.json'));
   run('npx', ['lobster-pm', 'demo-loop', '--dir', WORKSPACE_DIR, '--rounds', '1'], { cwd: INSTALL_DIR, stdio: 'inherit' });
   assertFile(path.join(WORKSPACE_DIR, 'memory/runtime/heartbeat-log.jsonl'));
   assertIncludes(path.join(WORKSPACE_DIR, 'memory/runtime/HEARTBEAT-DIFF.md'), 'thread_changes: 1');

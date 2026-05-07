@@ -110,6 +110,7 @@ My AI Team OS
 - `evolutionInbox`：进化收件箱。
 - `runtimeSnapshot`：运行快照。
 - `scheduler`：OpenClaw 原生 cron 心跳定时。
+- `agentDiscovery`：扫描本地 OpenClaw 真实 agent；缺失时生成默认 agent。
 - `personalityLayer`：角色人格与表达风格层。
 
 如果你只是想先试用，可以全部保持默认。
@@ -125,12 +126,12 @@ My AI Team OS
 - `qa`：质量负责人，负责验收、打回和缺陷。
 - `supervisor`：监督官，负责健康、产出、沟通、偏航审计。
 
-你可以关闭某些角色，也可以修改显示名、心跳频率和职责描述。
+向导会先扫描 `~/.openclaw/openclaw.json` 和 `~/.openclaw/.openclaw/openclaw.json`。如果发现同名核心 agent，会优先复用真实 `id/name`；如果没有，则使用默认核心团队生成 `agents/openclaw-agents.json`。你可以关闭某些角色，也可以修改显示名、心跳频率和职责描述。
 
 ## 5. 生成后的目录说明
 
-```text
 workspace/
+  agents/openclaw-agents.json  # 真实 agent 扫描结果 + 缺失 agent 默认定义
   config/lpm.config.json        # 总配置
   prompts/                      # 各角色提示词
   tasks/todo.json               # 任务真相源
@@ -226,6 +227,14 @@ npx lobster-pm install-scheduler --dir ./workspace --mode openclaw-cron --opencl
 ```
 
 安装命令会把 `scheduler/openclaw-cron-jobs.json` 合并进 OpenClaw 的 `cron/jobs.json`，并先备份原文件。`scheduler/heartbeat-plan.cron` 只是备用参考，不是优先方案。
+
+如果扫描后发现缺少核心 agent，可以安装默认生成的 agent：
+
+```bash
+npx lobster-pm install-agents --dir ./workspace --confirm
+```
+
+这个命令会把 `agents/openclaw-agents.json` 里的 `generatedAgents` 合并进 OpenClaw `openclaw.json`，并先备份原文件。已有真实 agent 不会重复生成。
 
 每轮心跳仍必须遵守协议：
 
