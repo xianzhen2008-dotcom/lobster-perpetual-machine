@@ -11,7 +11,8 @@
     "init": "node ./bin/lobster-pm.mjs init",
     "check": "node ./scripts/validate.mjs",
     "smoke:newcomer": "node ./scripts/smoke-newcomer.mjs",
-    "demo": "node ./bin/lobster-pm.mjs init --yes --dir ./demo-workspace"
+    "demo": "node ./bin/lobster-pm.mjs init --yes --dir ./demo-workspace",
+    "demo:loop": "node ./bin/lobster-pm.mjs demo-loop --dir ./demo-workspace --rounds 1"
   },
   "keywords": [
     "ai-agents",

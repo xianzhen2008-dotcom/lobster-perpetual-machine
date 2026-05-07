@@ -137,6 +137,9 @@ workspace/
   tasks/PROJECT-COCKPIT.md      # project cockpit
   agent-chat/mailboxes/         # agent inboxes
   agent-chat/threads/           # DM/group threads
+  muse/README.md                # Muse-compatible task base notes
+  scheduler/heartbeat-plan.cron # schedule reference, not auto-installed
+  scheduler/README.md
   memory/runtime/OPS-SNAPSHOT.md
   memory/runtime/HEARTBEAT-DIFF.md
   evolution/EVOLUTION-INBOX.md
@@ -201,7 +204,11 @@ Connect these prompts to your own agent runtime.
 
 ## 7. Heartbeat Scheduling
 
-Lobster Perpetual Machine is runtime-agnostic. You can wake agents with any scheduler as long as each heartbeat follows the protocol:
+Lobster Perpetual Machine is runtime-agnostic. The starter does not install OS timers automatically, but it generates `scheduler/heartbeat-plan.cron` and `scheduler/README.md` so you can review the intended cadence.
+
+This is intentional: the public template does not know whether you will use OpenClaw, Codex, Claude Code, or a custom runtime. Writing cron/launchd entries without review could create surprising wakeups.
+
+You can wake agents with any scheduler as long as each heartbeat follows the protocol:
 
 1. Read mailbox first.
 2. Read project cockpit and task truth source.
@@ -220,6 +227,23 @@ Example cron pattern:
 ```
 
 `run-agent` is a placeholder. Replace it with your runtime command.
+
+If you only want to experience the flow, you do not need a real model or OpenClaw. Run the local simulator:
+
+```bash
+npx lobster-pm doctor --dir ./workspace
+npx lobster-pm demo-loop --dir ./workspace --rounds 1
+npx lobster-pm tick --dir ./workspace --role main
+```
+
+The simulator reads `tasks/todo.json`, `agent-chat/mailboxes/*`, and `tasks/PROJECT-COCKPIT.md`, then writes:
+
+- `memory/runtime/heartbeat-log.jsonl`
+- `memory/runtime/OPS-SNAPSHOT.md`
+- `memory/runtime/HEARTBEAT-DIFF.md`
+- `agent-chat/threads/main-supervisor.md`
+
+This verifies the operating loop, but it is not a production agent. It is a newcomer demo and deployment self-check.
 
 ## 8. How to Know It Is Working
 
@@ -249,8 +273,10 @@ It verifies:
 - `lobster-pm` is available through `npx`.
 - `init --yes` generates a complete workspace.
 - Required files exist.
+- The Muse-compatible task base, private threads, and scheduler hints exist.
 - The seed task has executable fields.
 - Prompts include heartbeat, inbox, and QA protocol.
+- `doctor` and `demo-loop` can run one simulated heartbeat loop.
 
 ### 9.2 GitHub Remote Install Test
 
@@ -292,6 +318,12 @@ After generating a workspace, manually simulate the first loop:
 6. supervisor checks whether there was real change and evidence.
 
 If these six steps cannot run, the issue is not the model. The task fields, role responsibilities, or heartbeat protocol are not clear enough.
+
+You can also run the automatic simulator:
+
+```bash
+npx lobster-pm demo-loop --dir ./lobster-test --rounds 1
+```
 
 ## 10. Common Setups
 

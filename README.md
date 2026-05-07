@@ -85,6 +85,11 @@ workspace/
   agent-chat/
     mailboxes/
     threads/
+  muse/
+    README.md
+  scheduler/
+    heartbeat-plan.cron
+    README.md
   tasks/
     todo.json
     PROJECT-COCKPIT.md
@@ -93,6 +98,16 @@ workspace/
   docs/
     OPERATING-RULES.md
 ```
+
+默认不会自动安装系统定时器。初始化会生成 `scheduler/heartbeat-plan.cron` 作为心跳计划参考，并提供本地模拟命令：
+
+```bash
+npx lobster-pm doctor --dir ./workspace
+npx lobster-pm demo-loop --dir ./workspace --rounds 1
+npx lobster-pm tick --dir ./workspace --role main
+```
+
+`muse/README.md` 会随工作区生成，说明开源版的 Muse 兼容任务底座就是 `tasks/todo.json`，避免新人误建第二套任务源。
 
 ## 运行逻辑
 

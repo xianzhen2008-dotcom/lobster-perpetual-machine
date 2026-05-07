@@ -137,6 +137,9 @@ workspace/
   tasks/PROJECT-COCKPIT.md      # 项目驾驶舱
   agent-chat/mailboxes/         # 每个 agent 的收件箱
   agent-chat/threads/           # 私聊/群聊线程
+  muse/README.md                # Muse 兼容任务底座说明
+  scheduler/heartbeat-plan.cron # 心跳定时参考，不会自动安装
+  scheduler/README.md
   memory/runtime/OPS-SNAPSHOT.md
   memory/runtime/HEARTBEAT-DIFF.md
   evolution/EVOLUTION-INBOX.md
@@ -201,7 +204,11 @@ prompts/supervisor.md
 
 ## 7. 如何接入定时心跳
 
-龙虾永动机本身不绑定某个具体 runtime。你可以用任意方式定时唤醒 agent，只要每轮遵守协议：
+龙虾永动机本身不绑定某个具体 runtime。初始化程序不会自动安装系统定时器，但会生成 `scheduler/heartbeat-plan.cron` 和 `scheduler/README.md`，让你清楚看到推荐频率。
+
+这样设计是故意的：公开模板不知道你最终使用 OpenClaw、Codex、Claude Code 还是自建 runtime，直接写入 cron/launchd 容易制造意外唤醒。
+
+你可以用任意方式定时唤醒 agent，只要每轮遵守协议：
 
 1. 先读自己的 mailbox。
 2. 读项目驾驶舱和任务真相源。
@@ -220,6 +227,23 @@ prompts/supervisor.md
 ```
 
 这里的 `run-agent` 是占位命令，你需要替换成自己的 agent runtime 命令。
+
+如果只是想体验流程，不需要真实模型或 OpenClaw，可以先跑本地模拟：
+
+```bash
+npx lobster-pm doctor --dir ./workspace
+npx lobster-pm demo-loop --dir ./workspace --rounds 1
+npx lobster-pm tick --dir ./workspace --role main
+```
+
+模拟会读取 `tasks/todo.json`、`agent-chat/mailboxes/*`、`tasks/PROJECT-COCKPIT.md`，并写入：
+
+- `memory/runtime/heartbeat-log.jsonl`
+- `memory/runtime/OPS-SNAPSHOT.md`
+- `memory/runtime/HEARTBEAT-DIFF.md`
+- `agent-chat/threads/main-supervisor.md`
+
+这能验证底层闭环是否成立，但它不是生产 agent，只是新手体验和部署自检。
 
 ## 8. 如何判断系统跑起来了
 
@@ -249,8 +273,10 @@ npm run smoke:newcomer
 - `lobster-pm` 命令能被 `npx` 找到。
 - `init --yes` 能生成完整工作区。
 - 核心文件都存在。
+- Muse 兼容任务底座、私聊线程、调度提示都存在。
 - seed task 具备可执行字段。
 - prompt 中包含心跳、收件箱、验收等关键协议。
+- `doctor` 和 `demo-loop` 可以实际跑通一轮模拟心跳。
 
 ### 9.2 GitHub 远程安装测试
 
@@ -292,6 +318,12 @@ docs/starter-guide.md
 6. supervisor 检查是否有真实变化和证据。
 
 如果这六步无法跑通，说明不是模型问题，而是任务字段、角色职责或心跳协议还不够清楚。
+
+也可以直接使用自动模拟：
+
+```bash
+npx lobster-pm demo-loop --dir ./lobster-test --rounds 1
+```
 
 ## 10. 常见配置方案
 

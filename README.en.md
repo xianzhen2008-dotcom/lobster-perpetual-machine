@@ -87,6 +87,11 @@ workspace/
   agent-chat/
     mailboxes/
     threads/
+  muse/
+    README.md
+  scheduler/
+    heartbeat-plan.cron
+    README.md
   tasks/
     todo.json
     PROJECT-COCKPIT.md
@@ -95,6 +100,16 @@ workspace/
   docs/
     OPERATING-RULES.md
 ```
+
+The starter does not install OS timers automatically. It generates `scheduler/heartbeat-plan.cron` as a schedule reference and provides local simulation commands:
+
+```bash
+npx lobster-pm doctor --dir ./workspace
+npx lobster-pm demo-loop --dir ./workspace --rounds 1
+npx lobster-pm tick --dir ./workspace --role main
+```
+
+`muse/README.md` is generated with the workspace. It explains that the open-source Muse-compatible task base is `tasks/todo.json`, so newcomers do not accidentally create a second task source.
 
 ## Operating Loop
 

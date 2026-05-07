@@ -63,6 +63,9 @@ function main() {
     'memory/runtime/OPS-SNAPSHOT.md',
     'memory/runtime/HEARTBEAT-DIFF.md',
     'evolution/EVOLUTION-INBOX.md',
+    'muse/README.md',
+    'scheduler/heartbeat-plan.cron',
+    'scheduler/README.md',
     'agent-chat/threads/main-supervisor.md',
     'prompts/main.md',
     'prompts/planner.md',
@@ -98,6 +101,13 @@ function main() {
   assertIncludes(path.join(WORKSPACE_DIR, 'prompts/qa.md'), 'If implementation is complete, route it to QA');
   assertIncludes(path.join(WORKSPACE_DIR, 'docs/OPERATING-RULES.md'), 'Everything is stable');
   assertIncludes(path.join(WORKSPACE_DIR, 'tasks/PROJECT-COCKPIT.md'), 'Stage Gates');
+  assertIncludes(path.join(WORKSPACE_DIR, 'muse/README.md'), 'tasks/todo.json');
+  assertIncludes(path.join(WORKSPACE_DIR, 'scheduler/README.md'), 'not install OS timers automatically');
+
+  run('npx', ['lobster-pm', 'doctor', '--dir', WORKSPACE_DIR], { cwd: INSTALL_DIR, stdio: 'inherit' });
+  run('npx', ['lobster-pm', 'demo-loop', '--dir', WORKSPACE_DIR, '--rounds', '1'], { cwd: INSTALL_DIR, stdio: 'inherit' });
+  assertFile(path.join(WORKSPACE_DIR, 'memory/runtime/heartbeat-log.jsonl'));
+  assertIncludes(path.join(WORKSPACE_DIR, 'memory/runtime/HEARTBEAT-DIFF.md'), 'thread_changes: 1');
 
   console.log('\nNewcomer smoke test passed.');
   console.log(`Generated workspace: ${WORKSPACE_DIR}`);
