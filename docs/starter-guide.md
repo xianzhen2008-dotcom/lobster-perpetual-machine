@@ -44,7 +44,7 @@ Start with:
 - Supervisor: on
 - Evolution Inbox: on
 
-If you only want a lightweight setup, disable cron hints and run heartbeats manually.
+If you only want a lightweight setup, disable OpenClaw native cron scheduling and run heartbeats manually.
 
 ## 4. Fill the First Project Cockpit / 填第一个项目驾驶舱
 

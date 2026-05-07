@@ -66,7 +66,7 @@ The starter wizard helps you choose:
 - Which agent roles to enable.
 - What each role is called and responsible for.
 - Heartbeat intervals for controller, planner, PM, engineer, QA, and supervisor.
-- Whether to enable task system, agent chat bus, evolution inbox, project cockpit, runtime snapshot, and cron hints.
+- Whether to enable task system, agent chat bus, evolution inbox, project cockpit, runtime snapshot, and OpenClaw native cron scheduling.
 - Where to generate the workspace.
 
 ## Generated Workspace
@@ -89,7 +89,9 @@ workspace/
     threads/
   muse/
     README.md
+    TASK-LIFECYCLE.md
   scheduler/
+    openclaw-cron-jobs.json
     heartbeat-plan.cron
     README.md
   tasks/
@@ -101,7 +103,13 @@ workspace/
     OPERATING-RULES.md
 ```
 
-The starter does not install OS timers automatically. It generates `scheduler/heartbeat-plan.cron` as a schedule reference and provides local simulation commands:
+Heartbeat scheduling uses OpenClaw native cron first. The starter asks whether to deploy generated jobs into OpenClaw now. If you skip deployment, it still generates `scheduler/openclaw-cron-jobs.json`, and you can deploy later:
+
+```bash
+npx lobster-pm install-scheduler --dir ./workspace --mode openclaw-cron --confirm
+```
+
+To experience the loop without real OpenClaw, use the local simulator:
 
 ```bash
 npx lobster-pm doctor --dir ./workspace
@@ -110,6 +118,7 @@ npx lobster-pm tick --dir ./workspace --role main
 ```
 
 `muse/README.md` is generated with the workspace. It explains that the open-source Muse-compatible task base is `tasks/todo.json`, so newcomers do not accidentally create a second task source.
+`muse/TASK-LIFECYCLE.md` documents the complete create, read, claim, submit, accept/reject, and archive flow.
 
 ## Operating Loop
 

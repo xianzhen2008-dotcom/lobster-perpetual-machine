@@ -64,7 +64,7 @@ npm run demo
 - 要启用哪些 agent 角色。
 - 每个角色叫什么、负责什么。
 - 主控、规划、产品、开发、验收、监督的心跳频率。
-- 是否开启任务系统、Agent 私聊总线、进化收件箱、项目驾驶舱、运行快照、cron 提示。
+- 是否开启任务系统、Agent 私聊总线、进化收件箱、项目驾驶舱、运行快照、OpenClaw 原生 cron 定时。
 - 要把工作区生成到哪里。
 
 ## 生成的工作区结构
@@ -87,7 +87,9 @@ workspace/
     threads/
   muse/
     README.md
+    TASK-LIFECYCLE.md
   scheduler/
+    openclaw-cron-jobs.json
     heartbeat-plan.cron
     README.md
   tasks/
@@ -99,7 +101,13 @@ workspace/
     OPERATING-RULES.md
 ```
 
-默认不会自动安装系统定时器。初始化会生成 `scheduler/heartbeat-plan.cron` 作为心跳计划参考，并提供本地模拟命令：
+心跳优先走 OpenClaw 原生 cron。初始化向导会问你是否现在自动部署到 OpenClaw；如果暂不部署，也会生成 `scheduler/openclaw-cron-jobs.json`，后续可执行：
+
+```bash
+npx lobster-pm install-scheduler --dir ./workspace --mode openclaw-cron --confirm
+```
+
+本地体验不需要真实 OpenClaw，可以先跑模拟：
 
 ```bash
 npx lobster-pm doctor --dir ./workspace
@@ -108,6 +116,7 @@ npx lobster-pm tick --dir ./workspace --role main
 ```
 
 `muse/README.md` 会随工作区生成，说明开源版的 Muse 兼容任务底座就是 `tasks/todo.json`，避免新人误建第二套任务源。
+`muse/TASK-LIFECYCLE.md` 会写清任务的写入、读取、接单、提交验收、完成/打回和归档链路。
 
 ## 运行逻辑
 

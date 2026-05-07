@@ -65,9 +65,13 @@ const DEFAULT_FEATURES = {
   projectCockpit: true,
   evolutionInbox: true,
   runtimeSnapshot: true,
-  cronHints: true,
+  scheduler: true,
   personalityLayer: true
 };
+
+function defaultSchedulerMode() {
+  return 'openclaw-cron';
+}
 
 function usage() {
   console.log(`Lobster Perpetual Machine
@@ -77,21 +81,36 @@ Usage:
   lobster-pm doctor [--dir <workspace>]
   lobster-pm tick [--dir <workspace>] [--role <roleId>]
   lobster-pm demo-loop [--dir <workspace>] [--rounds <n>]
+  lobster-pm install-scheduler [--dir <workspace>] [--mode openclaw-cron|manual] [--confirm]
   lobster-pm help
 `);
 }
 
 function parseArgs(argv) {
-  const args = { command: argv[2] || 'help', yes: false, dir: null, role: 'main', rounds: 1 };
+  const args = {
+    command: argv[2] || 'help',
+    yes: false,
+    dir: null,
+    role: 'main',
+    rounds: 1,
+    mode: defaultSchedulerMode(),
+    confirm: false,
+    openclawDir: path.join(process.env.HOME || '', '.openclaw')
+  };
   for (let i = 3; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--yes' || arg === '-y') args.yes = true;
+    else if (arg === '--confirm') args.confirm = true;
     else if (arg === '--dir') args.dir = argv[++i];
     else if (arg.startsWith('--dir=')) args.dir = arg.slice('--dir='.length);
     else if (arg === '--role') args.role = argv[++i];
     else if (arg.startsWith('--role=')) args.role = arg.slice('--role='.length);
     else if (arg === '--rounds') args.rounds = Number(argv[++i]);
     else if (arg.startsWith('--rounds=')) args.rounds = Number(arg.slice('--rounds='.length));
+    else if (arg === '--mode') args.mode = argv[++i];
+    else if (arg.startsWith('--mode=')) args.mode = arg.slice('--mode='.length);
+    else if (arg === '--openclaw-dir') args.openclawDir = argv[++i];
+    else if (arg.startsWith('--openclaw-dir=')) args.openclawDir = arg.slice('--openclaw-dir='.length);
   }
   return args;
 }
@@ -139,6 +158,50 @@ function readJson(file, fallback) {
 
 function appendJsonl(file, value) {
   appendText(file, `${JSON.stringify(value)}\n`);
+}
+
+function heartbeatSeconds(interval) {
+  const value = String(interval || '').trim().toLowerCase();
+  if (value.endsWith('m')) return Math.max(60, Number.parseInt(value, 10) * 60);
+  if (value.endsWith('h')) return Math.max(60, Number.parseInt(value, 10) * 3600);
+  if (value.endsWith('d') || value === '24h') return 86400;
+  const numeric = Number.parseInt(value, 10);
+  return Number.isFinite(numeric) ? Math.max(60, numeric * 60) : 1800;
+}
+
+function schedulerCommand(out, roleId) {
+  return `npx lobster-pm tick --dir ${shellQuote(out)} --role ${roleId}`;
+}
+
+function shellQuote(value) {
+  return `'${String(value).replaceAll("'", "'\\''")}'`;
+}
+
+function plistEscape(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function workspaceSlug(out) {
+  return path.basename(path.resolve(out)).replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase() || 'workspace';
+}
+
+function cronExprForRole(role) {
+  const value = String(role.heartbeat || '').trim().toLowerCase();
+  if (role.id === 'main') return '*/10 * * * *';
+  if (role.id === 'planner') return '15 9 * * *';
+  if (role.id === 'supervisor') return '15 * * * *';
+  if (value.endsWith('m')) {
+    const minutes = Number.parseInt(value, 10);
+    if (Number.isFinite(minutes) && minutes > 0 && minutes <= 59) return `*/${minutes} * * * *`;
+  }
+  if (value.endsWith('h')) {
+    const hours = Number.parseInt(value, 10);
+    if (Number.isFinite(hours) && hours > 0 && hours <= 23) return `0 */${hours} * * *`;
+  }
+  return '*/30 * * * *';
 }
 
 function renderPrompt(role, config) {
@@ -248,12 +311,18 @@ function todoSeed(config) {
         owner: config.roles.find(r => r.id === 'planner')?.name || 'Planner',
         value_stream: 'framework',
         project_id: 'PROJECT-001',
+        project_phase: 'Intake',
+        user_problem: 'The team needs a daily operating charter before autonomous work starts.',
+        target_outcome: 'A short daily plan with goal, owner, evidence path, and QA gate.',
         next_action: 'Write today’s goal, deliverable, risks, owners, and acceptance gates.',
         acceptance_criteria: [
           'Daily charter exists.',
           'At least one project goal has owner, evidence path, and QA gate.'
         ],
-        evidence: []
+        evidence: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_actor: 'lobster-pm-init'
       }
     ]
   };
@@ -311,38 +380,87 @@ This is not a task pool. It collects improvement candidates.
 function schedulerPlan(config, out) {
   const enabledRoles = config.roles.filter(role => role.enabled);
   const lines = [
-    '# Lobster Perpetual Machine heartbeat schedule hints',
-    '# These entries are generated for review. They are NOT installed automatically.',
-    '# Replace `npx lobster-pm tick` with your real agent runtime when connected.',
-    '# Example local simulator schedule:',
+    '# Lobster Perpetual Machine fallback schedule hints',
+    '# Primary mode is OpenClaw native cron. This file is only a human-readable fallback/export.',
+    '# To deploy to OpenClaw native cron, run:',
+    `# npx lobster-pm install-scheduler --dir ${out} --mode openclaw-cron --confirm`,
+    '# Local simulator fallback:',
     ''
   ];
   for (const role of enabledRoles) {
-    const cron = role.id === 'main'
-      ? '*/10 * * * *'
-      : role.id === 'planner'
-        ? '15 9 * * *'
-        : role.id === 'supervisor'
-          ? '15 * * * *'
-          : '*/30 * * * *';
-    lines.push(`${cron} npx lobster-pm tick --dir ${out} --role ${role.id}`);
+    lines.push(`${cronExprForRole(role)} npx lobster-pm tick --dir ${out} --role ${role.id}`);
   }
   lines.push('');
   return `${lines.join('\n')}`;
 }
 
+function openClawPrompt(role, out) {
+  const promptPath = path.join(out, `prompts/${role.id}.md`);
+  const mailboxPath = path.join(out, `agent-chat/mailboxes/${role.id}.md`);
+  return `【龙虾永动机心跳｜${role.id}】
+
+这是 OpenClaw 原生 cron 定时唤醒。请先读：
+1. ${promptPath}
+2. ${mailboxPath}
+3. ${path.join(out, 'tasks/todo.json')}
+4. ${path.join(out, 'tasks/PROJECT-COCKPIT.md')}
+5. ${path.join(out, 'muse/TASK-LIFECYCLE.md')}
+6. ${path.join(out, 'memory/runtime/OPS-SNAPSHOT.md')}
+
+本轮必须产生：真实动作、明确决策、纠偏、验收、blocker，或无任务 keepalive 记录。处理后必须写回 Muse 任务、agent-chat 线程或 runtime 证据。不要只说系统稳定。`;
+}
+
+function openClawCronJobs(config, out) {
+  const slug = workspaceSlug(out);
+  const jobs = config.roles.filter(role => role.enabled).map(role => ({
+    id: `lpm-${slug}-${role.id}`,
+    agentId: role.id,
+    name: `LPM ${role.name} heartbeat (${role.id})`,
+    enabled: true,
+    createdAtMs: Date.now(),
+    schedule: {
+      kind: 'cron',
+      expr: cronExprForRole(role),
+      tz: 'Asia/Shanghai'
+    },
+    sessionTarget: role.id,
+    wakeMode: 'now',
+    payload: {
+      kind: 'systemEvent',
+      text: openClawPrompt(role, out)
+    },
+    state: {}
+  }));
+  return {
+    version: 1,
+    scheduler: {
+      mode: 'openclaw-cron',
+      workspace: out,
+      note: 'Generated by lobster-pm. Merge into OpenClaw cron/jobs.json with install-scheduler.'
+    },
+    jobs
+  };
+}
+
 function schedulerReadme(config) {
   return `# Scheduler / 心跳定时
 
-The starter generates scheduler hints but does not install OS timers automatically.
+Primary scheduler: OpenClaw native cron.
 
-Why:
+The starter generates:
 
-- Different users run different agent runtimes.
-- Installing cron/launchd without review is surprising and unsafe.
-- The generated schedule should be checked before it wakes agents repeatedly.
+- \`scheduler/openclaw-cron-jobs.json\`: OpenClaw native cron jobs.
+- \`scheduler/heartbeat-plan.cron\`: fallback reference only.
 
-## Local simulator
+## Deploy to OpenClaw
+
+\`\`\`bash
+npx lobster-pm install-scheduler --dir . --mode openclaw-cron --confirm
+\`\`\`
+
+This merges generated jobs into \`~/.openclaw/cron/jobs.json\` by default. Use \`--openclaw-dir <path>\` if your OpenClaw home is elsewhere.
+
+## Local simulator fallback
 
 \`\`\`bash
 npx lobster-pm demo-loop --dir . --rounds 1
@@ -355,7 +473,7 @@ ${config.roles.filter(role => role.enabled).map(role => `- ${role.id}: ${role.he
 
 ## Production integration
 
-Use \`heartbeat-plan.cron\` as a reference. Replace \`npx lobster-pm tick\` with the command that wakes your real agent runtime with the corresponding prompt.
+Use OpenClaw native cron first. Use OS cron/system timers only when OpenClaw cron is not available.
 `;
 }
 
@@ -382,6 +500,98 @@ Required task fields:
 - evidence
 
 Do not create a second task source. If you connect a real Muse app, keep it synced with \`tasks/todo.json\` or replace this file with a documented adapter.
+`;
+}
+
+function museLifecycle() {
+  return `# Muse Task Lifecycle / Muse 任务链路
+
+Muse is the task truth source for Lobster Perpetual Machine.
+
+Canonical file:
+
+\`\`\`text
+tasks/todo.json
+\`\`\`
+
+## 1. Create / 写入任务
+
+A task may be created by the user, main controller, PM, supervisor, or evolution pipeline.
+
+Minimum required fields:
+
+- \`id\`
+- \`title\`
+- \`status\`: \`draft\`
+- \`owner\`
+- \`project_id\`
+- \`project_phase\`
+- \`user_problem\`
+- \`target_outcome\`
+- \`next_action\`
+- \`acceptance_criteria\`
+- \`evidence\`
+- \`created_at\`
+- \`updated_at\`
+- \`last_actor\`
+
+One-line ideas must enter \`draft\` and go to PM before implementation.
+
+## 2. Read / 读取任务
+
+Every heartbeat reads \`tasks/todo.json\` before dispatching work.
+
+Read priority:
+
+1. \`blocked\` tasks with explicit owner.
+2. \`pending_acceptance\` tasks for QA.
+3. \`in_progress\` tasks with stale activity.
+4. \`ready\` tasks aligned with the project cockpit.
+5. \`draft\` tasks that PM must structure.
+
+## 3. Start / 接单执行
+
+Only \`ready\` tasks can move to \`in_progress\`.
+
+The owner must write:
+
+- \`started_at\`
+- \`last_actor\`
+- \`next_action\`
+- expected evidence path
+
+## 4. Submit / 提交验收
+
+When implementation is finished, set:
+
+- \`status: pending_acceptance\`
+- \`submitted_at\`
+- \`evidence\`: file path, command output, screenshot, URL, or log
+- \`acceptance_note\`
+
+No evidence means not done.
+
+## 5. Accept or Reject / 完成或打回
+
+QA must set one of:
+
+- accepted: \`status: done\`, \`accepted_at\`, \`accepted_by\`, \`acceptance_note\`
+- rejected: \`status: ready\`, \`rejected_at\`, \`rejected_by\`, \`rejection_reason\`, \`next_action\`
+
+Rejected work returns to the owner or PM with a concrete next action.
+
+## 6. Close / 归档
+
+Only \`done\` tasks with evidence can be archived or summarized.
+
+## State Flow
+
+\`\`\`text
+draft -> ready -> in_progress -> pending_acceptance -> done
+                         |              |
+                         v              v
+                      blocked          ready
+\`\`\`
 `;
 }
 
@@ -430,9 +640,10 @@ ${config.roles.map(r => `- ${r.name} (${r.id}): ${r.responsibility} Heartbeat: $
 
 ## Important
 
-- OS timers are not installed automatically.
-- Scheduler hints are generated in \`scheduler/\`.
+- OpenClaw native cron is the primary scheduler.
+- Generated OpenClaw jobs are in \`scheduler/openclaw-cron-jobs.json\`.
 - The Muse-compatible task source is \`tasks/todo.json\`.
+- Muse lifecycle rules are in \`muse/TASK-LIFECYCLE.md\`.
 - Agent DM/thread surfaces are in \`agent-chat/\`.
 `;
 }
@@ -443,7 +654,12 @@ async function buildConfig(args) {
       workspaceName: 'My Lobster Perpetual Machine',
       outputDir: path.resolve(args.dir || 'workspace'),
       roles: DEFAULT_ROLES,
-      features: DEFAULT_FEATURES
+      features: DEFAULT_FEATURES,
+      scheduler: {
+        mode: defaultSchedulerMode(),
+        deploy: false,
+        openclawDir: path.join(process.env.HOME || '', '.openclaw')
+      }
     };
   }
 
@@ -456,6 +672,15 @@ async function buildConfig(args) {
     for (const [key, fallback] of Object.entries(DEFAULT_FEATURES)) {
       features[key] = await askBool(rl, `Enable ${key}? / 是否开启 ${key}`, fallback);
     }
+    const schedulerMode = features.scheduler
+      ? await ask(rl, 'Scheduler mode / 心跳定时方式：优先 openclaw-cron，可选 manual', defaultSchedulerMode())
+      : 'manual';
+    const deployScheduler = schedulerMode === 'openclaw-cron'
+      ? await askBool(rl, 'Deploy OpenClaw cron jobs now? / 是否现在自动部署到 OpenClaw 原生 cron', false)
+      : false;
+    const openclawDir = deployScheduler
+      ? path.resolve(await ask(rl, 'OpenClaw home directory / OpenClaw 目录', path.join(process.env.HOME || '', '.openclaw')))
+      : path.join(process.env.HOME || '', '.openclaw');
 
     const roles = [];
     for (const role of DEFAULT_ROLES) {
@@ -469,7 +694,17 @@ async function buildConfig(args) {
       const responsibility = await ask(rl, `Responsibility for ${role.id} / 职责`, role.responsibility);
       roles.push({ ...role, enabled: true, name, heartbeat, responsibility });
     }
-    return { workspaceName, outputDir, roles, features };
+    return {
+      workspaceName,
+      outputDir,
+      roles,
+      features,
+      scheduler: {
+        mode: schedulerMode,
+        deploy: deployScheduler,
+        openclawDir
+      }
+    };
   } finally {
     rl.close();
   }
@@ -483,7 +718,8 @@ function generateWorkspace(config) {
     workspaceName: config.workspaceName,
     generatedAt: new Date().toISOString(),
     roles: config.roles,
-    features: config.features
+    features: config.features,
+    scheduler: config.scheduler || { mode: 'openclaw-cron', deploy: false }
   });
   writeText(path.join(out, 'README.md'), readmeLocal({ ...config, roles: enabledRoles }));
   writeText(path.join(out, 'docs/OPERATING-RULES.md'), operatingRules(config));
@@ -493,7 +729,9 @@ function generateWorkspace(config) {
   writeText(path.join(out, 'memory/runtime/HEARTBEAT-DIFF.md'), heartbeatDiff());
   writeText(path.join(out, 'evolution/EVOLUTION-INBOX.md'), evolutionInbox());
   writeText(path.join(out, 'muse/README.md'), museReadme());
-  if (config.features.cronHints) {
+  writeText(path.join(out, 'muse/TASK-LIFECYCLE.md'), museLifecycle());
+  if (config.features.scheduler) {
+    writeJson(path.join(out, 'scheduler/openclaw-cron-jobs.json'), openClawCronJobs({ ...config, roles: enabledRoles }, out));
     writeText(path.join(out, 'scheduler/heartbeat-plan.cron'), schedulerPlan({ ...config, roles: enabledRoles }, out));
     writeText(path.join(out, 'scheduler/README.md'), schedulerReadme({ ...config, roles: enabledRoles }));
   }
@@ -541,11 +779,60 @@ function requiredWorkspaceFiles(config) {
     'memory/runtime/HEARTBEAT-DIFF.md',
     'evolution/EVOLUTION-INBOX.md',
     'muse/README.md',
+    'muse/TASK-LIFECYCLE.md',
     'agent-chat/threads/main-supervisor.md',
     ...roleIds.map(id => `prompts/${id}.md`),
     ...roleIds.map(id => `agent-chat/mailboxes/${id}.md`),
-    ...(config.features.cronHints ? ['scheduler/heartbeat-plan.cron', 'scheduler/README.md'] : [])
+    ...(config.features.scheduler ? ['scheduler/openclaw-cron-jobs.json', 'scheduler/heartbeat-plan.cron', 'scheduler/README.md'] : [])
   ];
+}
+
+function mergeOpenClawCronJobs(workspace, openclawDir) {
+  const generatedFile = path.join(workspace, 'scheduler/openclaw-cron-jobs.json');
+  const generated = readJson(generatedFile, null);
+  if (!generated?.jobs?.length) throw new Error(`Missing generated OpenClaw cron jobs: ${generatedFile}`);
+
+  const cronDir = path.join(openclawDir, 'cron');
+  const jobsFile = path.join(cronDir, 'jobs.json');
+  ensureDir(cronDir);
+  const current = readJson(jobsFile, { version: 1, jobs: [] });
+  const currentJobs = Array.isArray(current.jobs) ? current.jobs : [];
+  const generatedIds = new Set(generated.jobs.map(job => job.id));
+  const merged = {
+    ...current,
+    version: current.version || 1,
+    jobs: [
+      ...currentJobs.filter(job => !generatedIds.has(job.id)),
+      ...generated.jobs
+    ]
+  };
+  if (fs.existsSync(jobsFile)) {
+    fs.copyFileSync(jobsFile, `${jobsFile}.bak-${Date.now()}`);
+  }
+  writeJson(jobsFile, merged);
+  writeText(path.join(workspace, 'scheduler/DEPLOYED.md'), `# Scheduler Deployed
+
+- mode: openclaw-cron
+- openclaw_jobs_file: ${jobsFile}
+- deployed_at: ${new Date().toISOString()}
+- jobs: ${generated.jobs.map(job => job.id).join(', ')}
+`);
+  return { jobsFile, count: generated.jobs.length };
+}
+
+function installScheduler(args) {
+  const dir = workspaceDir(args);
+  const config = loadWorkspaceConfig(dir);
+  if (!config) throw new Error(`Not a Lobster workspace: ${dir}`);
+  if (args.mode !== 'openclaw-cron') {
+    throw new Error('Only openclaw-cron install is supported. Use scheduler/heartbeat-plan.cron manually for other runtimes.');
+  }
+  if (!args.confirm) {
+    throw new Error('Refusing to deploy without --confirm. This writes to OpenClaw cron/jobs.json.');
+  }
+  const result = mergeOpenClawCronJobs(dir, path.resolve(args.openclawDir));
+  console.log(`Installed ${result.count} OpenClaw cron jobs into ${result.jobsFile}`);
+  console.log('If OpenClaw is running, it should pick up the generated jobs according to its cron scheduler.');
 }
 
 function doctorWorkspace(dir) {
@@ -560,7 +847,7 @@ function doctorWorkspace(dir) {
   console.log(`Workspace OK: ${dir}`);
   console.log(`Roles: ${enabledRoleIds(config).join(', ')}`);
   console.log('Found Muse-compatible task source, agent-chat bus, runtime snapshot, and prompts.');
-  if (config.features.cronHints) console.log('Scheduler hints exist. OS timers are not auto-installed.');
+  if (config.features.scheduler) console.log('Found OpenClaw native cron job definitions and fallback schedule hints.');
 }
 
 function firstTask(todo) {
@@ -687,6 +974,10 @@ async function main() {
     demoLoop(workspaceDir(args), args.rounds);
     return;
   }
+  if (args.command === 'install-scheduler') {
+    installScheduler(args);
+    return;
+  }
   if (args.command !== 'init') {
     usage();
     process.exitCode = 1;
@@ -694,10 +985,15 @@ async function main() {
   }
   const config = await buildConfig(args);
   const out = generateWorkspace(config);
+  if (config.scheduler?.deploy && config.scheduler.mode === 'openclaw-cron') {
+    const result = mergeOpenClawCronJobs(out, path.resolve(config.scheduler.openclawDir));
+    console.log(`Installed ${result.count} OpenClaw cron jobs into ${result.jobsFile}`);
+  }
   console.log(`\nGenerated workspace: ${out}`);
   console.log('Next: open README.md and fill tasks/PROJECT-COCKPIT.md');
   console.log(`Try: npx lobster-pm doctor --dir ${out}`);
   console.log(`Try: npx lobster-pm demo-loop --dir ${out} --rounds 1\n`);
+  console.log(`Deploy OpenClaw cron later: npx lobster-pm install-scheduler --dir ${out} --mode openclaw-cron --confirm\n`);
 }
 
 main().catch(err => {

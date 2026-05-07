@@ -109,7 +109,7 @@ Recommended defaults:
 - `projectCockpit`: project-level dashboard.
 - `evolutionInbox`: improvement candidate queue.
 - `runtimeSnapshot`: operating snapshot.
-- `cronHints`: scheduling hints.
+- `scheduler`: OpenClaw native cron scheduling.
 - `personalityLayer`: role style and personality layer.
 
 Keep defaults if you are trying the project for the first time.
@@ -138,7 +138,9 @@ workspace/
   agent-chat/mailboxes/         # agent inboxes
   agent-chat/threads/           # DM/group threads
   muse/README.md                # Muse-compatible task base notes
-  scheduler/heartbeat-plan.cron # schedule reference, not auto-installed
+  muse/TASK-LIFECYCLE.md        # Muse create/read/complete/QA flow
+  scheduler/openclaw-cron-jobs.json # OpenClaw native cron job definitions
+  scheduler/heartbeat-plan.cron # fallback reference only
   scheduler/README.md
   memory/runtime/OPS-SNAPSHOT.md
   memory/runtime/HEARTBEAT-DIFF.md
@@ -204,29 +206,33 @@ Connect these prompts to your own agent runtime.
 
 ## 7. Heartbeat Scheduling
 
-Lobster Perpetual Machine is runtime-agnostic. The starter does not install OS timers automatically, but it generates `scheduler/heartbeat-plan.cron` and `scheduler/README.md` so you can review the intended cadence.
+In an OpenClaw environment, Lobster Perpetual Machine uses **OpenClaw native cron first**. The starter wizard asks:
 
-This is intentional: the public template does not know whether you will use OpenClaw, Codex, Claude Code, or a custom runtime. Writing cron/launchd entries without review could create surprising wakeups.
+- Scheduling method: default is `openclaw-cron`.
+- Which roles to schedule: enabled main / planner / pm / dev / qa / supervisor roles.
+- Cadence: for example main every 10 minutes, pm/dev/qa every 30 minutes, supervisor every 60 minutes.
+- Whether to deploy now: if yes, it writes into OpenClaw `cron/jobs.json`.
 
-You can wake agents with any scheduler as long as each heartbeat follows the protocol:
+The non-interactive `--yes` path does not silently deploy scheduler jobs. Deploy after review:
 
-1. Read mailbox first.
-2. Read project cockpit and task truth source.
-3. Produce a real action, decision, correction, QA result, or blocker.
-4. Write back thread status, task evidence, or runtime snapshot.
-
-Example cron pattern:
-
-```cron
-*/10 * * * * run-agent main prompts/main.md
-15 9 * * * run-agent planner prompts/planner.md
-*/30 * * * * run-agent pm prompts/pm.md
-*/30 * * * * run-agent dev prompts/dev.md
-*/30 * * * * run-agent qa prompts/qa.md
-15 * * * * run-agent supervisor prompts/supervisor.md
+```bash
+npx lobster-pm install-scheduler --dir ./workspace --mode openclaw-cron --confirm
 ```
 
-`run-agent` is a placeholder. Replace it with your runtime command.
+If your OpenClaw home is not `~/.openclaw`:
+
+```bash
+npx lobster-pm install-scheduler --dir ./workspace --mode openclaw-cron --openclaw-dir /path/to/.openclaw --confirm
+```
+
+The install command merges `scheduler/openclaw-cron-jobs.json` into OpenClaw `cron/jobs.json` and backs up the original file first. `scheduler/heartbeat-plan.cron` is only a fallback reference.
+
+Each heartbeat must still follow the protocol:
+
+1. Read mailbox first.
+2. Read project cockpit and Muse task truth source.
+3. Produce a real action, decision, correction, QA result, or blocker.
+4. Write back thread status, task evidence, or runtime snapshot.
 
 If you only want to experience the flow, you do not need a real model or OpenClaw. Run the local simulator:
 
@@ -273,7 +279,7 @@ It verifies:
 - `lobster-pm` is available through `npx`.
 - `init --yes` generates a complete workspace.
 - Required files exist.
-- The Muse-compatible task base, private threads, and scheduler hints exist.
+- The Muse-compatible task base, private threads, and OpenClaw cron jobs exist.
 - The seed task has executable fields.
 - Prompts include heartbeat, inbox, and QA protocol.
 - `doctor` and `demo-loop` can run one simulated heartbeat loop.

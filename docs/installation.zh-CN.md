@@ -109,7 +109,7 @@ My AI Team OS
 - `projectCockpit`：项目驾驶舱。
 - `evolutionInbox`：进化收件箱。
 - `runtimeSnapshot`：运行快照。
-- `cronHints`：定时心跳提示。
+- `scheduler`：OpenClaw 原生 cron 心跳定时。
 - `personalityLayer`：角色人格与表达风格层。
 
 如果你只是想先试用，可以全部保持默认。
@@ -138,7 +138,9 @@ workspace/
   agent-chat/mailboxes/         # 每个 agent 的收件箱
   agent-chat/threads/           # 私聊/群聊线程
   muse/README.md                # Muse 兼容任务底座说明
-  scheduler/heartbeat-plan.cron # 心跳定时参考，不会自动安装
+  muse/TASK-LIFECYCLE.md        # Muse 写入/读取/完成/验收链路
+  scheduler/openclaw-cron-jobs.json # OpenClaw 原生 cron 任务定义
+  scheduler/heartbeat-plan.cron # 备用参考，不作为优先方案
   scheduler/README.md
   memory/runtime/OPS-SNAPSHOT.md
   memory/runtime/HEARTBEAT-DIFF.md
@@ -204,29 +206,33 @@ prompts/supervisor.md
 
 ## 7. 如何接入定时心跳
 
-龙虾永动机本身不绑定某个具体 runtime。初始化程序不会自动安装系统定时器，但会生成 `scheduler/heartbeat-plan.cron` 和 `scheduler/README.md`，让你清楚看到推荐频率。
+龙虾永动机在 OpenClaw 环境里优先走 **OpenClaw 自带 cron**。初始化向导会明确问：
 
-这样设计是故意的：公开模板不知道你最终使用 OpenClaw、Codex、Claude Code 还是自建 runtime，直接写入 cron/launchd 容易制造意外唤醒。
+- 用什么方法定时：默认 `openclaw-cron`。
+- 给谁定时：main / planner / pm / dev / qa / supervisor 中启用的角色。
+- 频率是多少：例如 main 10 分钟、pm/dev/qa 30 分钟、supervisor 60 分钟。
+- 是否现在自动部署：如果选择是，会写入 OpenClaw 的 `cron/jobs.json`。
 
-你可以用任意方式定时唤醒 agent，只要每轮遵守协议：
+快速默认生成不会自动部署，避免 `--yes` 在新人机器上静默改 OpenClaw。你可以在确认后手动部署：
 
-1. 先读自己的 mailbox。
-2. 读项目驾驶舱和任务真相源。
-3. 做一个真实动作、决策、纠偏、验收或 blocker 回写。
-4. 更新线程、任务证据或运行快照。
-
-示例 cron 思路：
-
-```cron
-*/10 * * * * run-agent main prompts/main.md
-15 9 * * * run-agent planner prompts/planner.md
-*/30 * * * * run-agent pm prompts/pm.md
-*/30 * * * * run-agent dev prompts/dev.md
-*/30 * * * * run-agent qa prompts/qa.md
-15 * * * * run-agent supervisor prompts/supervisor.md
+```bash
+npx lobster-pm install-scheduler --dir ./workspace --mode openclaw-cron --confirm
 ```
 
-这里的 `run-agent` 是占位命令，你需要替换成自己的 agent runtime 命令。
+如果你的 OpenClaw 目录不是 `~/.openclaw`：
+
+```bash
+npx lobster-pm install-scheduler --dir ./workspace --mode openclaw-cron --openclaw-dir /path/to/.openclaw --confirm
+```
+
+安装命令会把 `scheduler/openclaw-cron-jobs.json` 合并进 OpenClaw 的 `cron/jobs.json`，并先备份原文件。`scheduler/heartbeat-plan.cron` 只是备用参考，不是优先方案。
+
+每轮心跳仍必须遵守协议：
+
+1. 先读自己的 mailbox。
+2. 读项目驾驶舱和 Muse 任务真相源。
+3. 做一个真实动作、决策、纠偏、验收或 blocker 回写。
+4. 更新线程、任务证据或运行快照。
 
 如果只是想体验流程，不需要真实模型或 OpenClaw，可以先跑本地模拟：
 
@@ -273,7 +279,7 @@ npm run smoke:newcomer
 - `lobster-pm` 命令能被 `npx` 找到。
 - `init --yes` 能生成完整工作区。
 - 核心文件都存在。
-- Muse 兼容任务底座、私聊线程、调度提示都存在。
+- Muse 兼容任务底座、私聊线程、OpenClaw cron 任务定义都存在。
 - seed task 具备可执行字段。
 - prompt 中包含心跳、收件箱、验收等关键协议。
 - `doctor` 和 `demo-loop` 可以实际跑通一轮模拟心跳。

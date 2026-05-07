@@ -64,6 +64,8 @@ function main() {
     'memory/runtime/HEARTBEAT-DIFF.md',
     'evolution/EVOLUTION-INBOX.md',
     'muse/README.md',
+    'muse/TASK-LIFECYCLE.md',
+    'scheduler/openclaw-cron-jobs.json',
     'scheduler/heartbeat-plan.cron',
     'scheduler/README.md',
     'agent-chat/threads/main-supervisor.md',
@@ -93,7 +95,7 @@ function main() {
     throw new Error('todo.json should include seed task');
   }
   const task = todo.tasks[0];
-  for (const field of ['id', 'title', 'status', 'owner', 'project_id', 'next_action', 'acceptance_criteria', 'evidence']) {
+  for (const field of ['id', 'title', 'status', 'owner', 'project_id', 'project_phase', 'user_problem', 'target_outcome', 'next_action', 'acceptance_criteria', 'evidence', 'created_at', 'updated_at', 'last_actor']) {
     if (!(field in task)) throw new Error(`seed task missing field: ${field}`);
   }
 
@@ -102,7 +104,12 @@ function main() {
   assertIncludes(path.join(WORKSPACE_DIR, 'docs/OPERATING-RULES.md'), 'Everything is stable');
   assertIncludes(path.join(WORKSPACE_DIR, 'tasks/PROJECT-COCKPIT.md'), 'Stage Gates');
   assertIncludes(path.join(WORKSPACE_DIR, 'muse/README.md'), 'tasks/todo.json');
-  assertIncludes(path.join(WORKSPACE_DIR, 'scheduler/README.md'), 'not install OS timers automatically');
+  assertIncludes(path.join(WORKSPACE_DIR, 'muse/TASK-LIFECYCLE.md'), 'pending_acceptance');
+  assertIncludes(path.join(WORKSPACE_DIR, 'scheduler/README.md'), 'OpenClaw native cron');
+  const openclawJobs = readJson(path.join(WORKSPACE_DIR, 'scheduler/openclaw-cron-jobs.json'));
+  if (!Array.isArray(openclawJobs.jobs) || openclawJobs.jobs.length < 1) {
+    throw new Error('OpenClaw cron jobs should be generated');
+  }
 
   run('npx', ['lobster-pm', 'doctor', '--dir', WORKSPACE_DIR], { cwd: INSTALL_DIR, stdio: 'inherit' });
   run('npx', ['lobster-pm', 'demo-loop', '--dir', WORKSPACE_DIR, '--rounds', '1'], { cwd: INSTALL_DIR, stdio: 'inherit' });
