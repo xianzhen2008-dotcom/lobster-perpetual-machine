@@ -1,0 +1,30 @@
+{
+  "name": "lobster-perpetual-machine",
+  "version": "0.1.0",
+  "description": "An open-source operating system for self-driving AI agent teams. 龙虾永动机：让 AI Agent 团队有组织、有节奏、有验收地持续产出。",
+  "type": "module",
+  "bin": {
+    "lobster-pm": "./bin/lobster-pm.mjs",
+    "lpm": "./bin/lobster-pm.mjs"
+  },
+  "scripts": {
+    "init": "node ./bin/lobster-pm.mjs init",
+    "check": "node ./scripts/validate.mjs",
+    "demo": "node ./bin/lobster-pm.mjs init --yes --dir ./demo-workspace"
+  },
+  "keywords": [
+    "ai-agents",
+    "agent-orchestration",
+    "multi-agent",
+    "autonomous-agents",
+    "teamchat",
+    "task-management",
+    "heartbeat",
+    "openclaw"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

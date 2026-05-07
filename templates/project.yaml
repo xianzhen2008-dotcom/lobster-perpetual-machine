@@ -1,0 +1,8 @@
+project_id: PROJECT-001
+name: First Project
+phase: Intake
+user_problem: ""
+target_outcome: ""
+qa_gate: ""
+release_artifact: ""
+next_owner: pm

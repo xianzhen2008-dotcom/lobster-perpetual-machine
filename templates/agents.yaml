@@ -1,0 +1,31 @@
+roles:
+  - id: main
+    name: Lobster
+    title: Main Controller
+    heartbeat: 10m
+    enabled: true
+  - id: planner
+    name: Planner
+    title: Daily Architect
+    heartbeat: 24h
+    enabled: true
+  - id: pm
+    name: PM
+    title: Product Manager
+    heartbeat: 30m
+    enabled: true
+  - id: dev
+    name: Engineer
+    title: Engineering Lead
+    heartbeat: 30m
+    enabled: true
+  - id: qa
+    name: QA
+    title: Quality Lead
+    heartbeat: 30m
+    enabled: true
+  - id: supervisor
+    name: Supervisor
+    title: Governance Officer
+    heartbeat: 60m
+    enabled: true

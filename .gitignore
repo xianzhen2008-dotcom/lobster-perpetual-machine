@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+*.log
+*.sqlite
+*.db
+.env
+.env.*
+!.env.example
+demo-workspace/
+workspace/
+memory/runtime/*.json
+memory/runtime/*.log
+secrets/
+credentials/
+auth-state.json
